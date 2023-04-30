@@ -91,7 +91,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReplicatedCamera|Advanced|Tracking")
 		uint32 bAutoSetLockToHmd : 1;
 
-	void ApplyTrackingParameters(FVector & OriginalPosition);
+	void ApplyTrackingParameters(FVector & OriginalPosition, bool bSkipLocZero = false);
 	bool HasTrackingParameters();
 
 	// Get Camera View is no longer required, they finally broke the HMD logic out into its own section!!

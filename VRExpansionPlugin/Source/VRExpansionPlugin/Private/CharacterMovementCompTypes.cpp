@@ -69,6 +69,16 @@ bool FSavedMove_VRBaseCharacter::CanCombineWith(const FSavedMovePtr& NewMove, AC
 	if (!FVector2D(LFDiff.X, LFDiff.Y).IsZero() && !FVector2D(nMove->LFDiff.X, nMove->LFDiff.Y).IsZero() && !FVector::Coincident(LFDiff.GetSafeNormal2D(), nMove->LFDiff.GetSafeNormal2D(), AccelDotThresholdCombine))
 		return false;
 
+	if (AVRBaseCharacter* OwningChar = Cast<AVRBaseCharacter>(Character))
+	{
+		if (!OwningChar->bRetainRoomscale)
+		{
+			// For now don't combine when not retaining roomscale, something is borked
+			// #TODO: Fix it!!!
+			return false;
+		}
+	}
+
 	return FSavedMove_Character::CanCombineWith(NewMove, Character, MaxDelta);
 }
 
@@ -426,7 +436,23 @@ bool FVRCharacterNetworkMoveData::Serialize(UCharacterMovementComponent& Charact
 	ConditionalMoveReps.NetSerialize(Ar, PackageMap, bLocalSuccess);
 
 	//VRCapsuleLocation.NetSerialize(Ar, PackageMap, bLocalSuccess);
-	LFDiff.NetSerialize(Ar, PackageMap, bLocalSuccess);
+	if (AVRBaseCharacter* VRChar = Cast<AVRBaseCharacter>(CharacterOwner))
+	{
+		if (!VRChar->bRetainRoomscale)
+		{
+			SerializePackedVector<100000, 32>(LFDiff, Ar);
+		}
+		else
+		{
+			SerializePackedVector<100, 30>(LFDiff, Ar);
+		}
+	}
+	else
+	{
+		SerializePackedVector<100, 30>(LFDiff, Ar);
+	}
+
+	//LFDiff.NetSerialize(Ar, PackageMap, bLocalSuccess);
 	//Ar << VRCapsuleRotation;
 
 	return !Ar.IsError();

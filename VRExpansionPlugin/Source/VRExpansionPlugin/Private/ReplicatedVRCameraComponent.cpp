@@ -138,12 +138,12 @@ void UReplicatedVRCameraComponent::OnAttachmentChanged()
 
 bool UReplicatedVRCameraComponent::HasTrackingParameters()
 {
-	return bOffsetByHMD || bScaleTracking || bLimitMaxHeight || bLimitMinHeight || bLimitBounds;
+	return bOffsetByHMD || bScaleTracking || bLimitMaxHeight || bLimitMinHeight || bLimitBounds || (AttachChar && !AttachChar->bRetainRoomscale);
 }
 
-void UReplicatedVRCameraComponent::ApplyTrackingParameters(FVector &OriginalPosition)
+void UReplicatedVRCameraComponent::ApplyTrackingParameters(FVector &OriginalPosition, bool bSkipLocZero)
 {
-	if (bOffsetByHMD)
+	if (!bSkipLocZero && (bOffsetByHMD || AttachChar && !AttachChar->bRetainRoomscale))
 	{
 		OriginalPosition.X = 0;
 		OriginalPosition.Y = 0;

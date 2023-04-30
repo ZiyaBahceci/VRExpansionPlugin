@@ -6980,7 +6980,7 @@ bool UGripMotionControllerComponent::CheckComponentWithSweep(UPrimitiveComponent
 
 bool UGripMotionControllerComponent::HasTrackingParameters()
 {
-	return bOffsetByHMD || bScaleTracking || bLeashToHMD || bLimitMinHeight || bLimitMaxHeight;
+	return bOffsetByHMD || bScaleTracking || bLeashToHMD || bLimitMinHeight || bLimitMaxHeight || (AttachChar && !AttachChar->bRetainRoomscale);
 }
 
 void UGripMotionControllerComponent::ApplyTrackingParameters(FVector& OriginalPosition, bool bIsInGameThread)
@@ -7000,7 +7000,7 @@ void UGripMotionControllerComponent::ApplyTrackingParameters(FVector& OriginalPo
 		OriginalPosition.Z = FMath::Min(OriginalPosition.Z, MaximumHeight);
 	}
 
-	if (bOffsetByHMD || bLeashToHMD)
+	if (bOffsetByHMD || bLeashToHMD || (AttachChar && !AttachChar->bRetainRoomscale))
 	{
 		if (bIsInGameThread)
 		{
@@ -7013,7 +7013,7 @@ void UGripMotionControllerComponent::ApplyTrackingParameters(FVector& OriginalPo
 
 					if (IsValid(AttachChar) && AttachChar->VRReplicatedCamera)
 					{
-						AttachChar->VRReplicatedCamera->ApplyTrackingParameters(curLoc);
+						AttachChar->VRReplicatedCamera->ApplyTrackingParameters(curLoc, true);
 					}
 
 					//curLoc.Z = 0;
@@ -7035,14 +7035,14 @@ void UGripMotionControllerComponent::ApplyTrackingParameters(FVector& OriginalPo
 		// It has a data race condition right now though
 		FVector CorrectLastLocation = bIsInGameThread ? LastLocationForLateUpdate : LateUpdateParams.GripRenderThreadLastLocationForLateUpdate;
 
-		if (bOffsetByHMD)
+		if (bOffsetByHMD || (AttachChar && !AttachChar->bRetainRoomscale))
 		{
 			OriginalPosition -= FVector(CorrectLastLocation.X, CorrectLastLocation.Y, 0.0f);
 		}
 
 		if (bLeashToHMD)
 		{
-			FVector DifferenceVec = bOffsetByHMD ? OriginalPosition : (OriginalPosition - CorrectLastLocation);
+			FVector DifferenceVec = (bOffsetByHMD || (AttachChar && !AttachChar->bRetainRoomscale)) ? OriginalPosition : (OriginalPosition - CorrectLastLocation);
 
 			if (DifferenceVec.SizeSquared() > FMath::Square(LeashRange))
 			{

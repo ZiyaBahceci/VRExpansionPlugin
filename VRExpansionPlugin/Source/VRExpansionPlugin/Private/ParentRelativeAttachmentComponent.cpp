@@ -105,7 +105,14 @@ void UParentRelativeAttachmentComponent::UpdateTracking(float DeltaTime)
 	}
 	else if (IsValid(AttachChar)) // New case to early out and with less calculations
 	{
-		SetRelativeRotAndLoc(AttachChar->VRRootReference->curCameraLoc, AttachChar->VRRootReference->StoredCameraRotOffset, DeltaTime);
+		if (AttachChar->bRetainRoomscale)
+		{
+			SetRelativeRotAndLoc(AttachChar->VRRootReference->curCameraLoc, AttachChar->VRRootReference->StoredCameraRotOffset, DeltaTime);
+		}
+		else
+		{
+			SetRelativeRotAndLoc(FVector(0.0f, 0.0f, AttachChar->VRRootReference->curCameraLoc.Z), AttachChar->VRRootReference->StoredCameraRotOffset, DeltaTime);
+		}
 	}
 	else if (IsLocallyControlled() && GEngine->XRSystem.IsValid() && GEngine->XRSystem->IsHeadTrackingAllowed())
 	{
@@ -113,7 +120,7 @@ void UParentRelativeAttachmentComponent::UpdateTracking(float DeltaTime)
 		FVector curCameraLoc;
 		if (GEngine->XRSystem->GetCurrentPose(IXRTrackingSystem::HMDDeviceId, curRot, curCameraLoc))
 		{
-			if (bOffsetByHMD)
+			if (bOffsetByHMD || (AttachChar && !AttachChar->bRetainRoomscale))
 			{
 				curCameraLoc.X = 0;
 				curCameraLoc.Y = 0;

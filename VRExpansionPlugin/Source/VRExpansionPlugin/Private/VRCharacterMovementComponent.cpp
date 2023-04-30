@@ -410,7 +410,12 @@ void FSavedMove_VRCharacter::SetInitialPosition(ACharacter* C)
 		{
 			VRCapsuleLocation = VRC->VRRootReference->curCameraLoc;
 			VRCapsuleRotation = UVRExpansionFunctionLibrary::GetHMDPureYaw_I(VRC->VRRootReference->curCameraRot);
-			LFDiff = VRC->VRRootReference->DifferenceFromLastFrame;
+
+			// Don't reset this unless its zero, after that its from a movement merge
+			if (LFDiff.IsZero())
+			{
+				LFDiff = VRC->VRRootReference->DifferenceFromLastFrame;
+			}
 		}
 		else
 		{

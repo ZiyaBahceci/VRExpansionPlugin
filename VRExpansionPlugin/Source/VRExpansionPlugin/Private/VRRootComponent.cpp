@@ -472,9 +472,9 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	UVRBaseCharacterMovementComponent * CharMove = nullptr;
 
 	// Need these for passing physics updates to character movement
-	if (ACharacter * OwningCharacter = Cast<ACharacter>(GetOwner()))
+	if (IsValid(owningVRChar))
 	{
-		CharMove = Cast<UVRBaseCharacterMovementComponent>(OwningCharacter->GetCharacterMovement());
+		CharMove = Cast<UVRBaseCharacterMovementComponent>(owningVRChar->GetCharacterMovement());
 	}
 
 	if (IsLocallyControlled())
@@ -502,7 +502,7 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 			{
 				if (owningVRChar && owningVRChar->VRReplicatedCamera)
 				{
-					owningVRChar->VRReplicatedCamera->ApplyTrackingParameters(curCameraLoc);
+					owningVRChar->VRReplicatedCamera->ApplyTrackingParameters(curCameraLoc, true);
 				}
 
 				curCameraRot = curRot.Rotator();
@@ -522,13 +522,16 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 		// Store a leveled yaw value here so it is only calculated once
 		StoredCameraRotOffset = UVRExpansionFunctionLibrary::GetHMDPureYaw_I(curCameraRot);
 
-		// Pre-Process this for network sends
-		curCameraLoc.X = FMath::RoundToFloat(curCameraLoc.X * 100.f) / 100.f;
-		curCameraLoc.Y = FMath::RoundToFloat(curCameraLoc.Y * 100.f) / 100.f;
-		curCameraLoc.Z = FMath::RoundToFloat(curCameraLoc.Z * 100.f) / 100.f;
+		if (owningVRChar->bRetainRoomscale)
+		{
+			// Pre-Process this for network sends
+			curCameraLoc.X = FMath::RoundToFloat(curCameraLoc.X * 100.f) / 100.f;
+			curCameraLoc.Y = FMath::RoundToFloat(curCameraLoc.Y * 100.f) / 100.f;
+			curCameraLoc.Z = FMath::RoundToFloat(curCameraLoc.Z * 100.f) / 100.f;
+		}
 
 		// Can adjust the relative tolerances to remove jitter and some update processing
-		if (!curCameraLoc.Equals(lastCameraLoc, 0.01f) || !curCameraRot.Equals(lastCameraRot, 0.01f))
+		if (!owningVRChar->bRetainRoomscale || (!curCameraLoc.Equals(lastCameraLoc, 0.01f) || !curCameraRot.Equals(lastCameraRot, 0.01f)))
 		{
 			// Also calculate vector of movement for the movement component
 			FVector LastPosition = OffsetComponentToWorld.GetLocation();
@@ -574,6 +577,7 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 						bAllowWalkingCollision = true;
 				}
 
+				// TODO: Needs not retained roomscale version that uses movement diff instead of offset to world
 				if (bAllowWalkingCollision)
 					bBlockingHit = GetWorld()->SweepSingleByChannel(OutHit, LastPosition, OffsetComponentToWorld.GetLocation()/*NextTransform.GetLocation()*/, FQuat::Identity, WalkingCollisionOverride, GetCollisionShape(), Params, ResponseParam);
 
@@ -592,11 +596,29 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 			if (bHadRelativeMovement)
 			{
-				DifferenceFromLastFrame = OffsetComponentToWorld.GetLocation() - LastPosition;
-				//DifferenceFromLastFrame = (NextTransform.GetLocation() - LastPosition);// .GetSafeNormal2D();
-				DifferenceFromLastFrame.X = FMath::RoundToFloat(DifferenceFromLastFrame.X * 100.f) / 100.f;
-				DifferenceFromLastFrame.Y = FMath::RoundToFloat(DifferenceFromLastFrame.Y * 100.f) / 100.f;
-				DifferenceFromLastFrame.Z = 0.0f; // Reset Z to zero, its not used anyway and this lets me reuse the Z component for capsule half height
+				if (owningVRChar->bRetainRoomscale)
+				{
+					DifferenceFromLastFrame = OffsetComponentToWorld.GetLocation() - LastPosition;
+
+					//DifferenceFromLastFrame = (NextTransform.GetLocation() - LastPosition);// .GetSafeNormal2D();
+					DifferenceFromLastFrame.X = FMath::RoundToFloat(DifferenceFromLastFrame.X * 100.f) / 100.f;
+					DifferenceFromLastFrame.Y = FMath::RoundToFloat(DifferenceFromLastFrame.Y * 100.f) / 100.f;
+					DifferenceFromLastFrame.Z = 0.0f; // Reset Z to zero, its not used anyway and this lets me reuse the Z component for capsule half height
+				}
+				else
+				{
+					DifferenceFromLastFrame = GetComponentTransform().TransformVector(curCameraLoc - lastCameraLoc);
+
+					curCameraLoc.X = FMath::RoundToFloat(curCameraLoc.X * 100000.f) / 100000.f;
+					curCameraLoc.Y = FMath::RoundToFloat(curCameraLoc.Y * 100000.f) / 100000.f;
+					curCameraLoc.Z = FMath::RoundToFloat(curCameraLoc.Z * 100000.f) / 100000.f;
+
+					//DifferenceFromLastFrame = (NextTransform.GetLocation() - LastPosition);// .GetSafeNormal2D();
+					DifferenceFromLastFrame.X = FMath::RoundToFloat(DifferenceFromLastFrame.X * 100000.f) / 100000.f;
+					DifferenceFromLastFrame.Y = FMath::RoundToFloat(DifferenceFromLastFrame.Y * 100000.f) / 100000.f;
+					DifferenceFromLastFrame.Z = 0.0f; // Reset Z to zero, its not used anyway and this lets me reuse the Z component for capsule half height
+				}
+
 			}
 			else // Zero it out so we don't process off of the change (multiplayer sends this)
 				DifferenceFromLastFrame = FVector::ZeroVector;
