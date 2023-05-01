@@ -609,13 +609,13 @@ void UVRRootComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 				{
 					DifferenceFromLastFrame = GetComponentTransform().TransformVector(curCameraLoc - lastCameraLoc);
 
-					curCameraLoc.X = FMath::RoundToFloat(curCameraLoc.X * 100000.f) / 100000.f;
-					curCameraLoc.Y = FMath::RoundToFloat(curCameraLoc.Y * 100000.f) / 100000.f;
-					curCameraLoc.Z = FMath::RoundToFloat(curCameraLoc.Z * 100000.f) / 100000.f;
+					curCameraLoc.X = FMath::RoundToFloat(curCameraLoc.X * 10000.f) / 10000.f;
+					curCameraLoc.Y = FMath::RoundToFloat(curCameraLoc.Y * 10000.f) / 10000.f;
+					curCameraLoc.Z = FMath::RoundToFloat(curCameraLoc.Z * 10000.f) / 10000.f;
 
 					//DifferenceFromLastFrame = (NextTransform.GetLocation() - LastPosition);// .GetSafeNormal2D();
-					DifferenceFromLastFrame.X = FMath::RoundToFloat(DifferenceFromLastFrame.X * 100000.f) / 100000.f;
-					DifferenceFromLastFrame.Y = FMath::RoundToFloat(DifferenceFromLastFrame.Y * 100000.f) / 100000.f;
+					DifferenceFromLastFrame.X = FMath::RoundToFloat(DifferenceFromLastFrame.X * 10000.f) / 10000.f;
+					DifferenceFromLastFrame.Y = FMath::RoundToFloat(DifferenceFromLastFrame.Y * 10000.f) / 10000.f;
 					DifferenceFromLastFrame.Z = 0.0f; // Reset Z to zero, its not used anyway and this lets me reuse the Z component for capsule half height
 				}
 

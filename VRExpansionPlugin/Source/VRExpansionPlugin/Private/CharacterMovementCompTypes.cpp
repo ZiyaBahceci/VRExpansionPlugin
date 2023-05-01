@@ -440,7 +440,7 @@ bool FVRCharacterNetworkMoveData::Serialize(UCharacterMovementComponent& Charact
 	{
 		if (!VRChar->bRetainRoomscale)
 		{
-			SerializePackedVector<100000, 32>(LFDiff, Ar);
+			SerializePackedVector<10000, 32>(LFDiff, Ar);
 		}
 		else
 		{
